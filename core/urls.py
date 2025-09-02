@@ -1,5 +1,18 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import (
+    GameViewSet, PlayerViewSet, EventViewSet,
+    ZoneViewSet, ItemSpawnViewSet, TaskViewSet
+)
 
-from core.views import index
+router = DefaultRouter()
+router.register(r'games', GameViewSet, basename='game')
+router.register(r'players', PlayerViewSet, basename='player')
+router.register(r'events', EventViewSet, basename='event')
+router.register(r'zones', ZoneViewSet, basename='zone')
+router.register(r'items', ItemSpawnViewSet, basename='item')
+router.register(r'tasks', TaskViewSet, basename='task')
 
-urlpatterns = [path("", index, name="index")]
+urlpatterns = [
+    path('api/', include(router.urls)),
+]
