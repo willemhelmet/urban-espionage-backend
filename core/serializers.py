@@ -47,30 +47,29 @@ class PlayerSerializer(serializers.ModelSerializer):
 
 class GameListSerializer(serializers.ModelSerializer):
     """Serializer for game list view"""
-    player_count = serializers.SerializerMethodField()
-    host_name = serializers.CharField(source='host.name', read_only=True)
+    host_id = serializers.CharField(source='host.id', read_only=True)
+    players = PlayerSerializer(many=True, read_only=True)
     
     class Meta:
         model = Game
         fields = [
-            'id', 'code', 'status', 'host_name', 'player_count',
+            'id', 'code', 'status', 'host_id', 'players',
             'max_players', 'created_at'
         ]
-    
-    def get_player_count(self, obj):
-        return obj.players.count()
 
 
 class GameDetailSerializer(serializers.ModelSerializer):
     """Detailed serializer for Game model"""
     players = PlayerSerializer(many=True, read_only=True)
-    home_base = serializers.SerializerMethodField()
-    config = serializers.SerializerMethodField()
+    host_id = serializers.CharField(source='host.id', read_only=True)
     
     class Meta:
         model = Game
         fields = [
-            'id', 'code', 'status', 'home_base', 'config',
+            'id', 'code', 'status', 'host_id',
+            'home_base_lat', 'home_base_lng',
+            'map_radius', 'max_players', 'game_duration',
+            'red_team_ratio', 'tasks_to_win', 'failures_to_lose',
             'tasks_completed', 'tasks_failed', 'winner',
             'players', 'created_at', 'started_at', 'ended_at'
         ]
@@ -78,22 +77,6 @@ class GameDetailSerializer(serializers.ModelSerializer):
             'id', 'code', 'tasks_completed', 'tasks_failed',
             'winner', 'created_at', 'started_at', 'ended_at'
         ]
-    
-    def get_home_base(self, obj):
-        return {
-            'lat': obj.home_base_lat,
-            'lng': obj.home_base_lng
-        }
-    
-    def get_config(self, obj):
-        return {
-            'map_radius': obj.map_radius,
-            'max_players': obj.max_players,
-            'game_duration': obj.game_duration,
-            'red_team_ratio': obj.red_team_ratio,
-            'tasks_to_win': obj.tasks_to_win,
-            'failures_to_lose': obj.failures_to_lose
-        }
 
 
 class CreateGameSerializer(serializers.ModelSerializer):
