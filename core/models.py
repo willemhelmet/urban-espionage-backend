@@ -70,7 +70,7 @@ class Player(models.Model):
     avatar_url = models.URLField(null=True, blank=True)
     
     # Game association
-    game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name='players')
+    game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name='players', null=True, blank=True)
     team = models.CharField(max_length=10, choices=TEAM_CHOICES, null=True, blank=True)
     
     # Player state

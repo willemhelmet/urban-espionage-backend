@@ -1,0 +1,409 @@
+{
+  "info": {
+    "name": "Urban Espionage API",
+    "description": "API collection for testing Urban Espionage backend endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "ws_url",
+      "value": "ws://localhost:8001",
+      "type": "string"
+    },
+    {
+      "key": "game_code",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "player_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "host_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Games",
+      "item": [
+        {
+          "name": "Create Game",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Game code is generated\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.code).to.be.a('string');",
+                  "    pm.expect(jsonData.code).to.have.lengthOf(6);",
+                  "    ",
+                  "    // Save game code for other requests",
+                  "    pm.collectionVariables.set(\"game_code\", jsonData.code);",
+                  "    ",
+                  "    // Save host player ID",
+                  "    if (jsonData.players && jsonData.players[0]) {",
+                  "        pm.collectionVariables.set(\"host_id\", jsonData.players[0].id);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"host_name\": \"Test Host\",\n    \"avatar_url\": \"https://example.com/avatar.png\",\n    \"home_base_lat\": 37.7749,\n    \"home_base_lng\": -122.4194,\n    \"map_radius\": 1000,\n    \"max_players\": 20,\n    \"game_duration\": 60,\n    \"red_team_ratio\": 0.25,\n    \"tasks_to_win\": 5,\n    \"failures_to_lose\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/games/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "games", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Game Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/games/{{game_code}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "games", "{{game_code}}", ""]
+            }
+          }
+        },
+        {
+          "name": "Join Game",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Player created\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.id).to.be.a('string');",
+                  "    ",
+                  "    // Save player ID for other requests",
+                  "    pm.collectionVariables.set(\"player_id\", jsonData.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"player_name\": \"Test Player\",\n    \"avatar_url\": \"https://example.com/player_avatar.png\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/games/{{game_code}}/join/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "games", "{{game_code}}", "join", ""]
+            }
+          }
+        },
+        {
+          "name": "Start Game",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Game status is active\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.equal('active');",
+                  "});",
+                  "",
+                  "pm.test(\"Teams assigned\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    var blueTeam = jsonData.players.filter(p => p.team === 'blue');",
+                  "    var redTeam = jsonData.players.filter(p => p.team === 'red');",
+                  "    ",
+                  "    pm.expect(blueTeam.length).to.be.above(0);",
+                  "    pm.expect(redTeam.length).to.be.above(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/games/{{game_code}}/start/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "games", "{{game_code}}", "start", ""]
+            }
+          }
+        },
+        {
+          "name": "Leave Game",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"player_id\": \"{{player_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/games/{{game_code}}/leave/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "games", "{{game_code}}", "leave", ""]
+            }
+          }
+        },
+        {
+          "name": "List Games",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/games/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "games", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Players",
+      "item": [
+        {
+          "name": "Update Position",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Position updated\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.position).to.be.an('object');",
+                  "    pm.expect(jsonData.visibility).to.equal('active');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"lat\": 37.7750,\n    \"lng\": -122.4195,\n    \"accuracy\": 5.0\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/players/{{player_id}}/update_position/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "players", "{{player_id}}", "update_position", ""]
+            }
+          }
+        },
+        {
+          "name": "Pickup Item",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"item_id\": \"replace-with-actual-item-id\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/players/{{player_id}}/pickup_item/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "players", "{{player_id}}", "pickup_item", ""]
+            }
+          }
+        },
+        {
+          "name": "Use Item",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"target_player_id\": \"optional-target-player-id\",\n    \"target_position_lat\": 37.7750,\n    \"target_position_lng\": -122.4195\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/players/{{player_id}}/use_item/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "players", "{{player_id}}", "use_item", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Player Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/players/{{player_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "players", "{{player_id}}", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Game Data",
+      "item": [
+        {
+          "name": "Get Events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/events/?game_code={{game_code}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "events", ""],
+              "query": [
+                {
+                  "key": "game_code",
+                  "value": "{{game_code}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Zones",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/zones/?game_code={{game_code}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "zones", ""],
+              "query": [
+                {
+                  "key": "game_code",
+                  "value": "{{game_code}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Items",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/items/?game_code={{game_code}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "items", ""],
+              "query": [
+                {
+                  "key": "game_code",
+                  "value": "{{game_code}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Tasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/tasks/?game_code={{game_code}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks", ""],
+              "query": [
+                {
+                  "key": "game_code",
+                  "value": "{{game_code}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "WebSocket Tests",
+      "item": [
+        {
+          "name": "WebSocket Connection Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/",
+              "host": ["{{base_url}}"],
+              "path": ["api", ""]
+            },
+            "description": "WebSocket endpoint: {{ws_url}}/ws/game/{{game_code}}/\n\nMessage types:\n\n1. Authenticate:\n```json\n{\n  \"type\": \"authenticate\",\n  \"player_id\": \"{{player_id}}\"\n}\n```\n\n2. Position Update:\n```json\n{\n  \"type\": \"position_update\",\n  \"lat\": 37.7750,\n  \"lng\": -122.4195,\n  \"accuracy\": 5.0\n}\n```\n\n3. Radar Ping:\n```json\n{\n  \"type\": \"radar_ping\"\n}\n```\n\n4. Chat:\n```json\n{\n  \"type\": \"chat\",\n  \"message\": \"Hello team!\",\n  \"visibility\": \"team\"\n}\n```"
+          }
+        }
+      ]
+    }
+  ]
+}
