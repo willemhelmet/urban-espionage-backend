@@ -2,7 +2,7 @@
 # Exit on error
 set -o errexit
 
-echo "Starting Urban Espionage with WebSocket support..."
+echo "Starting Urban Espionage with Daphne ASGI server..."
 
 # Run Django setup commands
 echo "Running collectstatic..."
@@ -11,7 +11,7 @@ python manage.py collectstatic --no-input
 echo "Running migrations..."
 python manage.py migrate
 
-# Check if Redis is available
+# Check if Redis is available (optional but recommended for channels)
 echo "Checking Redis connection..."
 python -c "
 import os
@@ -24,18 +24,11 @@ except redis.ConnectionError:
     print('WARNING: Redis not available - WebSocket features will be limited')
 "
 
-# Start Daphne to handle BOTH HTTP and WebSocket connections on the same port
+# Start Daphne to handle both HTTP and WebSocket connections
 echo "Starting Daphne ASGI server on port 8000..."
-echo "Daphne will handle:"
-echo "  - HTTP API: http://localhost:8000"
-echo "  - WebSocket: ws://localhost:8000"
-echo ""
-echo "Press Ctrl+C to stop the server"
-
-# Run Daphne with proper settings for production use
+echo "Server will handle both HTTP and WebSocket connections"
 daphne -b 0.0.0.0 -p 8000 \
     --access-log - \
     --ping-interval 20 \
     --ping-timeout 60 \
-    --verbosity 2 \
     examplesite.asgi:application
