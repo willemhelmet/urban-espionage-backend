@@ -16,10 +16,12 @@ RUN pip install --no-cache-dir --user -r requirements.txt
 # Production stage
 FROM python:3.12-slim
 
-# Install runtime dependencies
+# Install runtime dependencies including supervisor and redis-cli
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     netcat-openbsd \
+    supervisor \
+    redis-tools \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy Python dependencies from builder
@@ -34,8 +36,11 @@ WORKDIR /code
 # Copy project files
 COPY . /code/
 
-# Create static and media directories
-RUN mkdir -p /code/static /code/media
+# Copy supervisor configuration
+COPY supervisor.conf /etc/supervisor/conf.d/urban-espionage.conf
+
+# Create static and media directories and log directories
+RUN mkdir -p /code/static /code/media /var/log/supervisor
 
 # Add wait script for database
 RUN echo '#!/bin/sh\n\
@@ -55,5 +60,6 @@ EXPOSE 8000 8001
 # Set entrypoint
 ENTRYPOINT ["/wait-for-db.sh"]
 
-# Default command (overridden by docker-compose)
-CMD ["gunicorn", "examplesite.wsgi:application", "--bind", "0.0.0.0:8000"]
+# Default command - use supervisor to run both servers
+# Can be overridden by docker-compose for different deployment strategies
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]

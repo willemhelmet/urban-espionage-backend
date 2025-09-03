@@ -1,0 +1,78 @@
+# Caddyfile for Urban Espionage Production Deployment
+# This configuration handles both HTTP and WebSocket traffic
+
+urban-espionage.rcdis.co {
+    # Enable gzip compression
+    encode gzip
+
+    # WebSocket connections - proxy to Daphne
+    handle /ws/* {
+        # Remove any existing headers that might interfere
+        header_down -Server
+        
+        # Set WebSocket headers
+        header Connection *Upgrade*
+        header Upgrade websocket
+        
+        # Reverse proxy to Daphne WebSocket server
+        reverse_proxy localhost:8001 {
+            # WebSocket specific options
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+    
+    # Static files (if serving from Caddy)
+    handle /static/* {
+        root * /app/static
+        file_server
+    }
+    
+    # Media files (if serving from Caddy)
+    handle /media/* {
+        root * /app/media
+        file_server
+    }
+    
+    # All other requests - proxy to Gunicorn
+    handle {
+        reverse_proxy localhost:8000 {
+            # Standard HTTP headers
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+            
+            # Timeout settings
+            transport http {
+                read_timeout 30s
+                write_timeout 30s
+            }
+        }
+    }
+    
+    # Security headers
+    header {
+        # Basic security headers
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        
+        # Remove server identification
+        -Server
+    }
+    
+    # Logging
+    log {
+        output file /var/log/caddy/access.log
+        format console
+    }
+}
+
+# Redirect www to non-www
+www.urban-espionage.rcdis.co {
+    redir https://urban-espionage.rcdis.co{uri} permanent
+}
