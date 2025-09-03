@@ -120,6 +120,19 @@ class GameViewSet(viewsets.ModelViewSet):
             message=f"{player.name} joined the game"
         )
         
+        # Broadcast to all players in the game via WebSocket
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f'game_{game.code}',
+            {
+                'type': 'player_joined',
+                'player': PlayerSerializer(player).data
+            }
+        )
+        
         return Response(
             PlayerSerializer(player).data,
             status=status.HTTP_201_CREATED
@@ -173,6 +186,19 @@ class GameViewSet(viewsets.ModelViewSet):
             message=f"Game started with {len(players)} players"
         )
         
+        # Broadcast game started to all players via WebSocket
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f'game_{game.code}',
+            {
+                'type': 'game_started',
+                'game': GameDetailSerializer(game).data
+            }
+        )
+        
         return Response(
             GameDetailSerializer(game).data,
             status=status.HTTP_200_OK
@@ -193,17 +219,55 @@ class GameViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        player.left_at = timezone.now()
-        player.is_online = False
-        player.visibility = 'dark'
-        player.save()
+        # Store player info before potential deletion
+        player_name = player.name
+        player_id_str = str(player.id)
         
-        # Log event
-        Event.objects.create(
-            game=game,
-            type='player_left',
-            player=player,
-            message=f"{player.name} left the game"
+        # If game hasn't started, remove player completely
+        # If game is active, just mark them as offline
+        if game.status == 'lobby':
+            # Check if this is the host leaving
+            if player.id == game.host_id:
+                # Transfer host to another player if any exist
+                remaining_players = game.players.exclude(id=player.id)
+                if remaining_players.exists():
+                    game.host_id = remaining_players.first().id
+                    game.save()
+            
+            # Log event BEFORE deleting the player
+            Event.objects.create(
+                game=game,
+                type='player_left',
+                player=player,
+                message=f"{player_name} left the game"
+            )
+            
+            player.delete()  # Remove player from game entirely
+        else:
+            player.left_at = timezone.now()
+            player.is_online = False
+            player.visibility = 'dark'
+            player.save()
+            
+            # Log event after marking as offline
+            Event.objects.create(
+                game=game,
+                type='player_left',
+                player=player,
+                message=f"{player_name} left the game"
+            )
+        
+        # Broadcast to all players in the game via WebSocket
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f'game_{game.code}',
+            {
+                'type': 'player_left',
+                'player_id': player_id_str
+            }
         )
         
         return Response(status=status.HTTP_204_NO_CONTENT)

@@ -49,6 +49,7 @@ services:
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-django-insecure-dev-key-change-in-production}
       DEBUG: ${DEBUG:-True}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-*}
+      DJANGO_SETTINGS_MODULE: examplesite.settings
 
   # Production-ready ASGI server for WebSockets
   daphne:
@@ -69,6 +70,7 @@ services:
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-django-insecure-dev-key-change-in-production}
       DEBUG: ${DEBUG:-True}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-*}
+      DJANGO_SETTINGS_MODULE: examplesite.settings
 
 volumes:
   postgres_data:
